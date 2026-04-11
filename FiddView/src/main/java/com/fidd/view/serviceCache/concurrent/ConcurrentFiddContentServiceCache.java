@@ -4,6 +4,8 @@ import com.fidd.service.FiddContentService;
 import com.fidd.view.serviceCache.FiddContentServiceCache;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,6 +26,11 @@ public class ConcurrentFiddContentServiceCache implements FiddContentServiceCach
 
     public void removeService(String serviceName) {
         serviceMap.remove(serviceName);
+    }
+
+    @Override
+    public List<String> getServiceIds() {
+        return new ArrayList<>(serviceMap.keySet());
     }
 
     @Override
