@@ -10,6 +10,7 @@ import com.fidd.view.rest.model.FiddFileMetadata;
 import java.util.List;
 
 import com.fidd.view.rest.model.LogicalFileMetadata;
+import com.fidd.view.rest.model.MessageInfo;
 import io.vertx.core.Future;
 import io.vertx.ext.web.handler.HttpException;
 
@@ -30,6 +31,24 @@ public class MessagesApiCustomImpl implements MessagesApi {
 
         com.fidd.view.rest.model.FiddFileMetadata dtoMetadata = FiddFileMetadataMapper.toDto(metadata);
         return Future.succeededFuture(new ApiResponse<>(dtoMetadata));
+    }
+
+    @Override
+    public Future<ApiResponse<MessageInfo>> getMessageInfo(String fiddId, Long messageNumber) {
+        Future<ApiResponse<FiddFileMetadata>> metadataFuture = getFiddFileMetadata(fiddId, messageNumber);
+        Future<ApiResponse<List<LogicalFileMetadata>>> logicalFilesFuture = getLogicalFileInfos(fiddId, messageNumber);
+
+        return Future.all(metadataFuture, logicalFilesFuture)
+                .compose(compositeFuture -> {
+                    FiddFileMetadata metadata = compositeFuture.<ApiResponse<FiddFileMetadata>>resultAt(0).getData();
+                    List<LogicalFileMetadata> logicalFiles = compositeFuture.<ApiResponse<List<LogicalFileMetadata>>>resultAt(1).getData();
+
+                    if (metadata == null || logicalFiles == null) {
+                        return Future.failedFuture(new HttpException(404));
+                    }
+
+                    return Future.succeededFuture(new ApiResponse<>(new MessageInfo(metadata, logicalFiles)));
+                });
     }
 
     @Override
