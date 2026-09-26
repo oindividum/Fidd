@@ -34,8 +34,11 @@ public class MessagesApiCustomImpl implements MessagesApi {
     }
 
     @Override
+    @SuppressWarnings("NullAway") // metadata is intentionally nullable in the ApiResponse below
     public Future<ApiResponse<MessageInfo>> getMessageInfo(String fiddId, Long messageNumber) {
-        Future<ApiResponse<FiddFileMetadata>> metadataFuture = getFiddFileMetadata(fiddId, messageNumber);
+        // metadata is tolerated as missing (matches pre-merge behavior); logicalFiles is not
+        Future<ApiResponse<FiddFileMetadata>> metadataFuture = getFiddFileMetadata(fiddId, messageNumber)
+                .otherwise(new ApiResponse<>(null));
         Future<ApiResponse<List<LogicalFileMetadata>>> logicalFilesFuture = getLogicalFileInfos(fiddId, messageNumber);
 
         return Future.all(metadataFuture, logicalFilesFuture)
@@ -43,7 +46,7 @@ public class MessagesApiCustomImpl implements MessagesApi {
                     FiddFileMetadata metadata = compositeFuture.<ApiResponse<FiddFileMetadata>>resultAt(0).getData();
                     List<LogicalFileMetadata> logicalFiles = compositeFuture.<ApiResponse<List<LogicalFileMetadata>>>resultAt(1).getData();
 
-                    if (metadata == null || logicalFiles == null) {
+                    if (logicalFiles == null) {
                         return Future.failedFuture(new HttpException(404));
                     }
 
